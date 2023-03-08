@@ -1,0 +1,11 @@
+include pysmx/VERSION
+include VERSION
+include README.md
+include LICENSE
+include CHANGES.md
+
+recursive-include tests *
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+
+recursive-include docs *.rst conf.py *.jpg *.png *.gif
