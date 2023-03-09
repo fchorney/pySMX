@@ -16,11 +16,12 @@ CHECK_DEPS = [
     "isort[colors]",
     "flake8",
     "flake8-quotes",
+    "flake8-bugbear",
     "pep8-naming",
     "mypy",
     "black",
 ]
-REQUIREMENTS = ["loguru"]
+REQUIREMENTS = ["loguru", "hidapi"]
 
 EXTRAS = {
     "test": TEST_DEPS,
@@ -51,11 +52,11 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
     ],
     platforms=["any"],
     include_package_data=True,
     tests_require=TEST_DEPS,
     extras_require=EXTRAS,
-    entry_points={"console_scripts": ["test_cli = pysmx.template:main"]},
+    entry_points={"console_scripts": ["smxcli = pysmx.cli:main"]},
 )

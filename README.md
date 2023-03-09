@@ -1,9 +1,77 @@
 # pySMX
 [![Build Status](https://github.com/fchorney/pysmx/workflows/build/badge.svg)](https://github.com/fchorney/pysmx/actions?query=workflow:build)
-[![Python Version](https://img.shields.io/badge/python-3.9%20%7C%203.10-blue.svg)](https://www.python.org/)
+[![Python Version](https://img.shields.io/badge/python-3.10-blue.svg)](https://www.python.org/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 
 StepManiaX SDK for Python
+
+## Status
+
+Currently fairly incomplete. A lot of core functionality exists, but the rest of the SDK needs to be finished. At some point I can write out a list
+of functions currently enabled and which ones have yet to be added.
+
+## Installation (macOS)
+
+These are the instructions that I have been using to run this on my system so far.
+
+1. Use pyenv to install Python 3.10.x or use System Python if its 3.10.x or greater (This will probably work on newer pythons, but I don't know personally).
+2. Use [Homebrew](https://brew.sh/) to install `libusb`
+
+```
+brew install libusb
+```
+
+3. Make sure to add the following lines to your `~/.zshrc` or `~/.bashrc`
+
+```
+# LibUSB Settings
+  export DYLD_LIBRARY_PATH=/opt/homebrew/lib
+```
+
+4. Maybe restart here just to make sure everything is installed properly
+5. Download this repo onto your macOS system somewhere
+6. Inside this repo set up a python venv, activate it, and install the software into the venv
+
+```
+python -m venv venv
+. venv/bin/activate
+pip install --upgrade pip
+pip install -e .
+```
+7. Now you can play around with the code. The following script will show you the configs for the 2 connected pads. If you have just one, leave out the last line:
+
+```
+from pysmx.sdk.api import SMXAPI
+
+smxapi = SMXAPI()
+print(smxapi.get_stage_config(1))
+print(smxapi_get_stage_config(2))
+```
+
+8. Run your script with `python script_name.py`. This assumes you have the `venv` still activated.
+
+## Using pySMX to set your stage settings without needing to connect to a windows computer
+
+As this API/SDK is still unfinished, you can use the included script to set your stages sensor values to whatever you want.
+
+Following the above instructions to set this repo up and use the code, you can then do the following.
+
+1. Modify the `set_stage_configs.py` python file to your specified SMX Config.
+2. What you want to look at is the `sensor_data` array. Assuming you are on an FSR you want to look at the 2:9 values in the array. These
+    correspond to the 4 sensor release thresholds, and then the 4 sensor press thresholds.
+3. This will set the same settings for all 9 panels. If you need to modify each panel individually, you will have to modify the code that sets
+    `itl_config.panel_settings` to supply 9 `PackedSensorSettings` objects for the 9 panels. (Left to Right, Top to Bottom).
+4. If you need help with this, just reach out and I can probably help.
+5. Make sure you have the venv activated and run the script.
+
+```
+python set_stage_configs.py
+```
+
+## 3rd Party Software
+
+### LibUSB
+You need to have `libUSB` installed to run this. I have personally installed it with Homebrew and added `export DYLD_LIBRARY_PATH=/opt/homebrew/lib` to my `zshrc` file.
 
 ## Attribution
 
