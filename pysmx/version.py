@@ -1,7 +1,7 @@
 from pathlib import Path
 
 
-def get_version_number():
+def get_version_number() -> str:
     # This file must exist in the root of the module, as the following code
     # tries to find the module root so that it can find the VERSION file.
     # project_root/
