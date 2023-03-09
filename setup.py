@@ -20,7 +20,7 @@ CHECK_DEPS = [
     "mypy",
     "black",
 ]
-REQUIREMENTS = ["loguru"]
+REQUIREMENTS = ["loguru", "hidapi"]
 
 EXTRAS = {
     "test": TEST_DEPS,
@@ -57,5 +57,5 @@ setup(
     include_package_data=True,
     tests_require=TEST_DEPS,
     extras_require=EXTRAS,
-    entry_points={"console_scripts": ["test_cli = pysmx.template:main"]},
+    entry_points={"console_scripts": ["smxcli = pysmx.cli:main"]},
 )
