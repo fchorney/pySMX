@@ -3,32 +3,383 @@ import errno
 import os
 import struct
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from os import mkfifo
 from pathlib import Path
+from typing import ClassVar
 
 import hid
 
 
+# StepManiaX Stage Hardware Identification
 SMX_USB_VENDOR_ID = 0x2341
 SMX_USB_PRODUCT_ID = 0x8037
 SMX_USB_PRODUCT_NAME = "StepManiaX"
 
+# USB Communication Packet Flags
+PACKET_FLAG_START_OF_COMMAND = 0x04
+PACKET_FLAG_END_OF_COMMAND = 0x01
+PACKET_FLAG_HOST_CMD_FINISHED = 0x02
+PACKET_FLAG_DEVICE_INFO = 0x80
+
+# FIFO Pipe Locations
 PIPE_DIR = Path(__file__).parent / "pipes"
 IN_PIPE = PIPE_DIR / "input"
 OUT_PIPE = PIPE_DIR / "output"
 
+
+@dataclass
+class SMXDeviceInfo(object):
+    serial: str
+    firmware_version: int
+    player: int
+
+    @classmethod
+    def from_int_list(cls, data: list[int]) -> "SMXDeviceInfo":
+        return cls.from_bytes(bytes(data))
+
+    @classmethod
+    def from_bytes(cls, data: bytes) -> "SMXDeviceInfo":
+        struct_fmt = "<cBcc16BHc"
+        data_info_packet = struct.unpack(struct_fmt, data)
+        return SMXDeviceInfo(
+            "".join([f"{x:02X}" for x in data_info_packet[4:20]]),
+            data_info_packet[20],
+            int(data_info_packet[2]) + 1,
+        )
+
+    def __str__(self):
+        return (
+            f'SMXDeviceInfo<serial: "{self.serial}", firmware_version: '
+            f"{self.firmware_version}, player: {self.player}>"
+        )
+
+
+def send_command(pad: int, cmd: bytes, /, has_output: bool = False) -> bytes:
+    # Make sure the input and output FIFOs exist
+    if not IN_PIPE.is_fifo():
+        mkfifo(str(IN_PIPE))
+    if not OUT_PIPE.is_fifo():
+        mkfifo(str(OUT_PIPE))
+
+    # Write the command to the INPUT FIFO
+    with IN_PIPE.open("wb") as f:
+        f.write(str(pad).encode("UTF-8") + b":" + cmd)
+
+    # Sit and wait for the result
+    while True:
+        data = b""
+        with OUT_PIPE.open("rb") as f:
+            data = f.read(4096)
+
+        # If we expect a non empty response, keep checking the pipe until we get one
+        # TODO: Maybe add a timeout here?
+        if not has_output:
+            break
+        else:
+            # Using a single 0 as sentinel data
+            if len(data) != 1 or data[0] != 0:
+                break
+
+    return data
+
+
+def api_get_device_info(pad: int) -> SMXDeviceInfo:
+    data = send_command(pad, b"i", has_output=True)
+    return SMXDeviceInfo.from_bytes(data)
+
+
+@dataclass
+class PackedSensorSettings(object):
+    # Load Cell Thresholds
+    load_cell_low_threshold: int
+    load_cell_high_threshold: int
+
+    # FSR Thresholds
+    fsr_low_threshold: list[int]  # 4 values
+    fsr_high_threshold: list[int]  # 4 values
+
+    combined_low_threshold: int
+    combined_high_threshold: int
+
+    # This must be left unchanged
+    reserved: int
+
+    STRUCT_FMT: ClassVar[str] = (
+        "<"  # Little Endian
+        "B"  # loadCellLowThreshold
+        "B"  # loadCellHighThreshold
+        "4B"  # fsrLowThreshold
+        "4B"  # fsrHighThreshold
+        "H"  # combinedLowThreshold
+        "H"  # combinedHighThreshold
+        "H"  # reserved
+    )
+
+    @classmethod
+    def from_int_list(cls, data: list[int]) -> "PackedSensorSettings":
+        """
+        We expect 13 values in the list
+        """
+        return PackedSensorSettings(
+            data[0], data[1], data[2:6], data[6:10], data[10], data[11], data[12]
+        )
+
+
+@dataclass
+class SMXStageConfig(object):
+    # The firmware version of the master controller. Where supported (version 2 and up),
+    # this will always read back the firmware version. This will defalt to 0xFF on
+    # version 1, and we'll always write 0xFF here so it doesn't change on that firmware
+    # version.
+    # We don't need this since we can read the 'I' command which also reports the
+    # version, but this allows panels to also know the master version.
+    master_version: int = 0xFF
+
+    # The version of this config packet. This can be used by the firmware to know which
+    # values have been filled in. Any values not filled in will always be 0xFF, which
+    # can be tested for, but that doesn't work for values where 0xFF is a valid value.
+    # This value is unrelated to the firmware version, and just indicates which fields
+    # in this packet have been set.
+    # Note that we don't need to increase this any time we add a field, only when it's
+    # important that we be able to tell if a field is set or not.
+    #
+    # Versions:
+    # - 0xFF: This is a config packet from before configVersion was added.
+    # - 0x00: configVersion added
+    # - 0x02: panelThreshold0Low through panelThreshold8High added
+    # - 0x03: debounceDelayMs added
+    config_version: int = 0x05
+
+    # Packed flags (master_version >= 4)
+    flags: int = 0
+
+    # Panel thresholds are labelled by their numpad position. Eg: Panel8 is up.
+    # If SMXDeviceInfo.firmware_version is 1, Panel7 corresponds to all of Up, Down,
+    # Left, and Right, and Panel2 corresponds to UpLeft, UpRight, DownLeft, and
+    # DownRight. For later firmware versions, each panel is configured independently.
+    # Setting a value to 0xFF disables that threshold.
+
+    # These are internal tunables and should be left unchanged
+    debounce_no_delay_milliseconds: int = 0
+    debounce_delay_milliseconds: int = 0
+    panel_debounce_microseconds: int = 4000
+    auto_calibration_max_deviation: int = 100
+    bad_sensor_minimum_delay_seconds: int = 15
+    auto_calibration_averages_per_update: int = 60
+    auto_calibration_samples_per_average: int = 500
+
+    # The maximum tare value to calibrate to (except on startup)
+    auto_calibration_max_tare: int = 0xFFFF
+
+    # Which sensors on each panel to enable. This can be used to disable sensors that we
+    # know aren't populated. This is packed, with four sensors on two pads per byte:
+    # enabled_sensors[0] & 1 is the first sensor on the first pad, and so on
+    enabled_sensors: list[int] = field(default_factory=list)  # 5 panels
+
+    # How long the master controller will wait for a lights command before assuming the
+    # game has gone away and resume auto-lights. This is in 128ms units
+    auto_lights_timeout: int = 1000 // 128  # 7.8125 units
+
+    # The color to use for each panel when auto-lighting in master mode. This doesn't
+    # apply when the pads are in autonomous lighting mode (no master), since they don't
+    # store any configuration by themselves. These clors should be scaled to the 0 - 170
+    # range
+    step_color: list[int] = field(default_factory=list)  # 3 * 9 values
+
+    # The default color to set the platform LED strip to
+    platform_strip_color: list[int] = field(default_factory=list)  # 3 values
+
+    # Which panels to enable auto-lighting for. Disabled panels will be unlit.
+    # 0x01 = panel 0, 0x02 = panel 1, 0x04 = panel 2, etc. This only affects the master
+    # controller's built-in auto lighting and not lights data sent from the SDK
+    auto_light_panel_mask: int = 0xFFFF
+
+    # The rotation of the panel, where 0 is the standard rotation, 1 means the panel is
+    # rotated right 90 degrees, 2 is rotated 180 degrees, and 3 is rotated 270 degrees.
+    # Note: This value is unused
+    panel_rotation: int = 0x00
+
+    # Per-panel sensor settings
+    panel_settings: list[PackedSensorSettings] = field(default_factory=list)  # 9 panels
+
+    # These are internal tunables and should be left unchanged
+    pre_details_delay_milliseconds: int = 5
+
+    # Pad the struct to 250 bytes. This keeps this struct size from changing as we add
+    # fields, so the ABI doesn't change. Applications should leave any data in here
+    # unchanged when calling api_set_config
+    padding: list[int] = field(default_factory=list)  # 49 values
+
+    # fmt: off
+    STRUCT_FMT: ClassVar[str] = (
+        (
+            "<"  # Little Endian
+            "B"  # masterVersion
+            "B"  # configVersion
+            "B"  # flags
+            "H"  # debounceNodelayMilliseconds
+            "H"  # demounceDelayMilliseconds
+            "H"  # panelDebounceMicroseconds
+            "B"  # autoCalibrationMaxDeviation
+            "B"  # badSensorMinimumDelaySeconds
+            "H"  # autoCalibrationAveragesPerUpdate
+            "H"  # autoCalibrationSamplesPerAverage
+            "H"  # autoCalibrationMaxTare
+            "5B"  # enabledSensors (5)
+            "B"  # autoLightsTimeout
+            "27B"  # stepColor (3 * 9)
+            "3B"  # platformStripColor (3)
+            "H"  # autoLightPanelMask
+            "B"  # panelRotation
+        )
+        + (9 * PackedSensorSettings.STRUCT_FMT[1:])
+        + (
+            "B"  # preDetailsDelayMilliseconds
+            "49B"  # padding
+        )
+    )
+    # fmt: on
+
+    @classmethod
+    def from_bytes(cls, data: bytes) -> "SMXStageConfig":
+        unpacked = list(struct.unpack(cls.STRUCT_FMT, data))
+
+        # PackedSensorSettings contains 13 values, and we need 9 PackedSensorSettings
+        # objects.
+        # We know the data starts at item 49, and we need 117 values total
+        sensor_objects = 9
+        sensor_value_count = 13
+        sensor_items = sensor_value_count * sensor_objects
+        sensor_idx = 49
+        sensor_end_idx = sensor_idx + sensor_items
+        p_sensor_data = unpacked[sensor_idx:sensor_end_idx]
+
+        # Chop the data into `sensor_value_count` chunks, and pass them to a class
+        # method to create the PackedSensorSettings objects
+        packed_sensor_settings = [
+            PackedSensorSettings.from_int_list(
+                p_sensor_data[i : i + sensor_value_count]
+            )
+            for i in range(0, sensor_items, sensor_value_count)
+        ]
+
+        # TODO: This is kind of gross? Is there a better way to do this?
+        return SMXStageConfig(
+            unpacked[0],
+            unpacked[1],
+            unpacked[2],
+            unpacked[3],
+            unpacked[4],
+            unpacked[5],
+            unpacked[6],
+            unpacked[7],
+            unpacked[8],
+            unpacked[9],
+            unpacked[10],
+            unpacked[11:16],
+            unpacked[16],
+            unpacked[17:44],
+            unpacked[44:47],
+            unpacked[47],
+            unpacked[48],
+            packed_sensor_settings,
+            unpacked[166],
+            unpacked[167:216],
+        )
+
+
+def api_read_config(
+    pad: int, device_info: SMXDeviceInfo | None = None
+) -> SMXStageConfig:
+    # Get device info so we know what command to send
+    # TODO: Save this with some sort of global pad object so we don't need to keep
+    # asking for it
+    if device_info is None:
+        device_info = api_get_device_info(pad)
+
+    cmd = b"G" if device_info.firmware_version >= 5 else b"g"
+    data = send_command(pad, cmd, has_output=True)
+
+    assert data[0] == ord(cmd)
+    size = data[1]
+
+    # This command reads back the configuration we wrote with "w" or the defaults if we
+    # haven't written any
+    if len(data) < 2:
+        print("Communication error: invalid configuration packet")
+
+    if len(data) < size + 2:
+        print("Communication error: invalid configuration packet size")
+        # Return the default?
+        # TODO: Decide what makes the most sense here
+        return SMXStageConfig()
+
+    # TODO: Handle the old format "g" and convert to new format
+
+    # Trim to the given size.
+    # Currently this seems to return 251 bytes (with a new line at the end)
+    return SMXStageConfig.from_bytes(data[2 : size + 2])
+
+
+def api_factory_reset(pad: int) -> None:
+    # Send a factory reset command, and then read the new configuration
+    send_command(pad, b"f")
+    print("Factory Reset")
+
+    # Get device info so we know what command to send
+    info = api_get_device_info(pad)
+
+    # Grab the config
+    config = api_read_config(pad, device_info=info)
+
+    if info.firmware_version >= 5:
+        # Factory reset resets the platform strip color saved to the configuration but
+        # doesn't apply it to the lights. Do that now
+        led_strip_index = 0  # Always 0
+        number_of_leds = 44
+        light_cmd: list[int] = [ord("L"), led_strip_index, number_of_leds]
+
+        for i in range(44):
+            light_cmd.extend(config.platform_strip_color)
+
+        print(f"Light Cmd: {light_cmd}")
+
+        data = send_command(pad, bytes(light_cmd))
+        print(f"Light Cmd: {data.decode('UTF-8')}")
+
+
 INPUT_STATE = {
     0: False,
-    1: False,
+    1: False,  # Up
     2: False,
-    3: False,
-    4: False,
-    5: False,
+    3: False,  # Left
+    4: False,  # Center
+    5: False,  # Right
     6: False,
-    7: False,
+    7: False,  # Down
     8: False,
-    9: False,
 }
+
+
+@dataclass
+class SMXStage(object):
+    up_left: bool
+    up: bool
+    up_right: bool
+    left: bool
+    middle: bool
+    right: bool
+    down_left: bool
+    down: bool
+    down_right: bool
+
+    def __str__(self):
+        # Just show the 5 SMX panels. We can extend this to all 9 at a later time.
+        return (
+            f"SMXStage<up: {self.up}, left: {self.left}, middle: {self.middle}, "
+            f"right: {self.right}, down: {self.down}>"
+        )
 
 
 @dataclass
@@ -82,36 +433,7 @@ def find_smx_devices() -> list[SMXHIDDevice]:
     return devices
 
 
-@dataclass
-class SMXDeviceInfo(object):
-    serial: str
-    firmware_version: int
-    player: int
-
-    @classmethod
-    def from_int_array(cls, data: list[int]) -> "SMXDeviceInfo":
-        struct_fmt = "<cBcc16BHc"
-        data_info_packet = struct.unpack(struct_fmt, bytes(data))
-        return SMXDeviceInfo(
-            "".join([f"{x:02X}" for x in data_info_packet[4:20]]),
-            data_info_packet[20],
-            int(data_info_packet[2]) + 1,
-        )
-
-    def __str__(self):
-        return (
-            f'SMXDeviceInfo<serial: "{self.serial}", firmware_version: '
-            f"{self.firmware_version}, player: {self.player}>"
-        )
-
-
-PACKET_FLAG_START_OF_COMMAND = 0x04
-PACKET_FLAG_END_OF_COMMAND = 0x01
-PACKET_FLAG_HOST_CMD_FINISHED = 0x02
-PACKET_FLAG_DEVICE_INFO = 0x80
-
-
-async def make_send_packets(cmd: str) -> list[list[int]]:
+async def make_send_packets(cmd: bytes) -> list[list[int]]:
     packets: list[list[int]] = []
     i = 0
 
@@ -131,7 +453,7 @@ async def make_send_packets(cmd: str) -> list[list[int]]:
         packet = [5, flags, packet_size]
 
         # Add command data as int
-        packet.extend(ord(x) for x in cmd[i : i + packet_size])
+        packet.extend(x for x in cmd[i : i + packet_size])
 
         # Pad command to 64 bytes
         pad_amount = 64 - len(packet)
@@ -164,7 +486,7 @@ async def write_usb(dev):
             try:
                 data = fd.read(1024)
                 if data != b"":
-                    print(data)
+                    print(b"Writing Command: " + data)
                     cmd = data
             except OSError as err:
                 if err.errno == errno.EAGAIN or err.errno == errno.EWOULDBLOCK:
@@ -172,19 +494,13 @@ async def write_usb(dev):
                 else:
                     raise
             if cmd is not None:
-                if cmd == b"gotem":
-                    packets = [make_device_info_packet()]
-                elif cmd == b"input":
-                    print(INPUT_STATE)
-                    cmd = None
-                else:
-                    packets = await make_send_packets(cmd.decode("UTF-8"))
+                # Pull Pad and CMD out
+                pad, cmd = cmd.split(b":")
 
-                # This is just a hack to allow for some custom commands
-                if cmd is not None:
-                    for packet in packets:
-                        print(f"Sending Packet: {packet}")
-                        dev.write(packet)
+                packets = await make_send_packets(cmd)
+                for packet in packets:
+                    print(f"Sending Packet: {packet}")
+                    dev.write(packet)
                 cmd = None
             await asyncio.sleep(0.00001)
 
@@ -207,7 +523,16 @@ async def handle_usb(queue):
 
         if current_packet and current_packet[-1] == -69:
             cp = current_packet[:-1]
-            print(f"Current Packet [{len(cp)}]: {cp}")
+
+            if len(cp) == 0:
+                print("Acknowledged")
+                cp = [0]
+            else:
+                print(f"Current Packet [{len(cp)}]: {cp}")
+
+            # Write the packet bytes to the OUT Pipe
+            with OUT_PIPE.open("wb") as f:
+                f.write(bytes(cp))
             current_packet.clear()
         await asyncio.sleep(0.00001)
 
@@ -249,7 +574,7 @@ async def handle_packet(packet: list[int], current_packet: list[int]) -> None:
         # print(f"Data: {data}")
 
         if cmd & PACKET_FLAG_DEVICE_INFO == PACKET_FLAG_DEVICE_INFO:
-            info = SMXDeviceInfo.from_int_array(data)
+            info = SMXDeviceInfo.from_int_list(data)
             print(info)
 
         # If we're not active, ignore all packets other than device info. This is always
@@ -282,8 +607,7 @@ async def handle_packet(packet: list[int], current_packet: list[int]) -> None:
             print("Current command is complete")
 
         if cmd & PACKET_FLAG_END_OF_COMMAND == PACKET_FLAG_END_OF_COMMAND:
-            if len(current_packet) != 0:
-                current_packet.append(-69)
+            current_packet.append(-69)
 
 
 async def run(dev):
@@ -294,17 +618,3 @@ async def run(dev):
     print(f"Set Nonblocking: {result}")
 
     await asyncio.gather(write_usb(dev), read_usb(queue, dev), handle_usb(queue))
-
-
-def get_smx_stage_info(device: SMXHIDDevice) -> str:
-    with device.open() as dev:
-        c = dev.write("f\n".encode("UTF-8"))
-        print(f"Wrote {c} bytes")
-
-        data = dev.read(24)
-        print(data)
-
-        sret = "".join([chr(x) for x in data])
-        print(sret)
-
-    return "gotem"
