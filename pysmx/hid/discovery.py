@@ -6,8 +6,11 @@ from dataclasses import dataclass
 
 import hid
 
-from pysmx.hid.pipe import IN_PIPE, OUT_PIPE, PIPE_READ_BUFFER_SIZE
-from pysmx.sdk.device_info import SMXDeviceInfo
+from pysmx.hid.pipe import IN_PIPE, OUT_PIPE, PIPE_READ_BUFFER_SIZE, ensure_pipes_exist
+from pysmx.sdk.api import (
+    SMX_API_SPECIAL_CMD_GET_DEVICE_INFO,
+    SMX_API_SPECIAL_CMD_GET_INPUTS,
+)
 
 
 # StepManiaX Stage Hardware Identification
@@ -23,15 +26,15 @@ PACKET_FLAG_DEVICE_INFO = 0x80
 
 
 INPUT_STATE = {
-    0: False,
-    1: False,  # Up
-    2: False,
+    0: False,  # Down Left
+    1: False,  # Down
+    2: False,  # Down Right
     3: False,  # Left
     4: False,  # Center
     5: False,  # Right
-    6: False,
-    7: False,  # Down
-    8: False,
+    6: False,  # Up Left
+    7: False,  # Up
+    8: False,  # Up Right
 }
 
 
@@ -86,7 +89,7 @@ def find_smx_devices() -> list[SMXHIDDevice]:
     return devices
 
 
-def make_send_packets(cmd: bytes) -> list[list[int]]:
+async def make_send_packets(cmd: bytes) -> list[list[int]]:
     packets: list[list[int]] = []
     cmd_len = len(cmd)
     idx = 0
@@ -115,13 +118,13 @@ def make_send_packets(cmd: bytes) -> list[list[int]]:
         packets.append(packet)
 
         # Once we have all packets generated, break out
-        if idx := idx + packet_size >= cmd_len:
+        if (idx := idx + packet_size) >= cmd_len:
             break
 
     return packets
 
 
-def make_device_info_packet() -> list[int]:
+async def make_device_info_packet() -> list[int]:
     packet = [5, PACKET_FLAG_DEVICE_INFO, 0]
     packet.extend([0 for i in range(64 - len(packet))])
 
@@ -151,18 +154,20 @@ async def write_usb(dev):
                 send_packet = True
 
                 # Add Custom Commands Here so we can bypass `make_send_packets`
-                if cmd == b"devinfo":
-                    packets = [make_device_info_packet()]
-                elif cmd == b"input":
+                if cmd == SMX_API_SPECIAL_CMD_GET_DEVICE_INFO:
+                    packets = [await make_device_info_packet()]
+                elif cmd == SMX_API_SPECIAL_CMD_GET_INPUTS:
                     # Get the pad input
                     # Just write the result to the OUT_PIPE here
                     send_packet = False
 
                     # We can send back 9 ints where 1 = true and 0 = false
                     with OUT_PIPE.open("wb") as f:
-                        f.write(bytes([0, 0, 0, 0, 0, 0, 0, 0, 0]))
+                        f.write(
+                            bytes([val for key, val in sorted(INPUT_STATE.items())])
+                        )
                 else:
-                    packets = make_send_packets(cmd)
+                    packets = await make_send_packets(cmd)
 
                 if send_packet:
                     for packet in packets:
@@ -223,13 +228,15 @@ def handle_packet(packet: list[int], current_packet: list[int]) -> None:
 
     report_id = packet[0]
     if report_id == 3:
-        pass
         # Input State.
-        # We could also read this as a normal HID button change.
-        # input_state = ((packet[2] & 0xFF) << 8) | ((packet[1] & 0xFF) << 0)
+        # This just gets sent over the HID periodically as far as I can tell, keep
+        # reading it in and update the INPUT_STATE
 
-        # for i in range(9):
-        #   INPUT_STATE[i] = (input_state & (1 << i)) != 0
+        # We could also read this as a normal HID button change.
+        input_state = ((packet[2] & 0xFF) << 8) | ((packet[1] & 0xFF) << 0)
+
+        for i in range(9):
+            INPUT_STATE[i] = (input_state & (1 << i)) != 0
 
     elif report_id == 6:
         # A HID serial packet
@@ -239,18 +246,15 @@ def handle_packet(packet: list[int], current_packet: list[int]) -> None:
         cmd = packet[1]
         byte_len = packet[2]
 
-        # print(f"CMD: {cmd}, Byte Len: {byte_len}")
-
         if (3 + byte_len) > len(packet):
             print("Communication error: oversized packet (ignored)")
             return
 
         data = packet[3 : 3 + byte_len]
-        # print(f"Data: {data}")
 
-        if cmd & PACKET_FLAG_DEVICE_INFO == PACKET_FLAG_DEVICE_INFO:
-            info = SMXDeviceInfo.from_bytes(bytes(data))
-            print(info)
+        # TODO: I Don't think we really need to short circuit here?
+        # if cmd & PACKET_FLAG_DEVICE_INFO == PACKET_FLAG_DEVICE_INFO:
+        #     info = SMXDeviceInfo.from_bytes(bytes(data))
 
         # If we're not active, ignore all packets other than device info. This is always
         # false while we're in Open() waiting for the device info response.
@@ -286,6 +290,8 @@ def handle_packet(packet: list[int], current_packet: list[int]) -> None:
 
 
 async def run(dev):
+    ensure_pipes_exist()
+
     queue = asyncio.Queue()
 
     # Make sure device is blocking

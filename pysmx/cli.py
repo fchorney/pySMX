@@ -6,8 +6,7 @@ from loguru import logger
 
 def main(args: Optional[Sequence[str]] = None):
     pargs = parse_args(args=args)
-
-
+    logger.info(f"Parsed Args: {pargs}")
 
 
 def parse_args(args: Optional[Sequence[str]] = None) -> argparse.Namespace:
