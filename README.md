@@ -57,12 +57,9 @@ As this API/SDK is still unfinished, you can use the included script to set your
 Following the above instructions to set this repo up and use the code, you can then do the following.
 
 1. Modify the `set_stage_configs.py` python file to your specified SMX Config.
-2. What you want to look at is the `sensor_data` array. Assuming you are on an FSR you want to look at the 2:9 values in the array. These
-    correspond to the 4 sensor release thresholds, and then the 4 sensor press thresholds.
-3. This will set the same settings for all 9 panels. If you need to modify each panel individually, you will have to modify the code that sets
-    `itl_config.panel_settings` to supply 9 `PackedSensorSettings` objects for the 9 panels. (Left to Right, Top to Bottom).
-4. If you need help with this, just reach out and I can probably help.
-5. Make sure you have the venv activated and run the script.
+2. Look at the `make_new_config` function and follow modification instructions.
+3. If you need help with this, just reach out and I can probably help.
+4. Make sure you have the venv activated and run the script.
 
 ```
 python set_stage_configs.py

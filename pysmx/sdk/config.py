@@ -98,6 +98,7 @@ class SMXStageConfig(object):
     # - 0x03: debounceDelayMs added
     config_version: int = 0x05
 
+    # TODO: Make the flags enum or whatever, this is a packed byte
     # Packed flags (master_version >= 4)
     flags: int = 0
 
@@ -130,7 +131,7 @@ class SMXStageConfig(object):
 
     # The color to use for each panel when auto-lighting in master mode. This doesn't
     # apply when the pads are in autonomous lighting mode (no master), since they don't
-    # store any configuration by themselves. These clors should be scaled to the 0 - 170
+    # store any configuration by themselves. These colors should be scaled to the 0 - 170
     # range
     step_color: list[int] = field(default_factory=list)  # 3 * 9 values
 
