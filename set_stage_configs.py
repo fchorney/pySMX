@@ -32,7 +32,7 @@ def make_new_config(player: int, old_config: SMXStageConfig) -> SMXStageConfig:
     # the values below.
 
     # Set brighness for panel StepColor. 0 to 1 will be multiplied against any color values
-    brightness = [0.5, 0.5][player_idx]
+    brightness = [0.75, 0.75][player_idx]
 
     # Which sensors on each panel to enable. This can be used to disable sensors that we know aren't populated.
     # This is packed, with four sensors on two panels per byte:
@@ -44,13 +44,13 @@ def make_new_config(player: int, old_config: SMXStageConfig) -> SMXStageConfig:
 
     # Array of RGB values for the stage underglow. 0-255 for each color.
     # Defaults to RED
-    platform_strip_color = [RGB_RED, RGB_RED][player_idx]
+    platform_strip_color = [int(x * brightness) for x in [[0, 128, 255], [0, 128, 255]][player_idx]]
 
     # Determines which panels to enable auto-lighting for. Disabled panels will be unlit.
     # 0x01 =  panel 0, 0x02 = panel 1, etc
     # Defaults to all panels enabled.
     # Use 0xAA to only enable Up, Down, Left, Right
-    auto_light_mask = [0x01FF, 0x01FF][player_idx]
+    auto_light_mask = [0xAA, 0xAA][player_idx]
 
     # If use_step_color is true we will use the following `step_color` to set the color the panels light up when
     # stepped on.
@@ -64,7 +64,7 @@ def make_new_config(player: int, old_config: SMXStageConfig) -> SMXStageConfig:
     step_color: list[int] | None = None
     if use_step_color:
         x = [0, 0, 0]
-        s = [int(c * brightness) for c in step_color_scale(RGB_BLUE)]
+        s = [int(c * brightness) for c in step_color_scale([255, 255, 255])]
         step_color = []
         step_color.extend(*[[x + s + x + s + x + s + x + s + x], [x + s + x + s + x + s + x + s + x]][player_idx])
 
