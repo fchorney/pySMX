@@ -74,6 +74,26 @@ class PackedSensorSettings(object):
 
 
 @dataclass
+class SMXConfigFlags(object):
+    # If set, the panels will use the pressed animation when pressed, and step_color is ignored.
+    # If unset, panels will be lit solid using step_color.
+    # master_version >= 4. Previous versions always use step_color.
+    auto_lighting_use_pressed_animations: bool = True
+
+    # If set, panels are using FSRs, otherwise use load cells.
+    fsr: bool = True
+
+    STRUCT_FMT: ClassVar[str] = "<B"  # 1 Byte
+
+    @classmethod
+    def from_unpacked_value(cls, data: int) -> "SMXConfigFlags":
+        return SMXConfigFlags(bool(data & (1 << 0)), bool(data & (1 << 1)))
+
+    def to_packed_int(self) -> int:
+        return (self.fsr << 0) + (self.auto_lighting_use_pressed_animations << 1)
+
+
+@dataclass
 class SMXStageConfig(object):
     # The firmware version of the master controller. Where supported (version 2 and up),
     # this will always read back the firmware version. This will defalt to 0xFF on
@@ -98,9 +118,8 @@ class SMXStageConfig(object):
     # - 0x03: debounceDelayMs added
     config_version: int = 0x05
 
-    # TODO: Make the flags enum or whatever, this is a packed byte
     # Packed flags (master_version >= 4)
-    flags: int = 0
+    flags: SMXConfigFlags = SMXConfigFlags(True, True)
 
     # Panel thresholds are labelled by their numpad position. Eg: Panel8 is up.
     # If SMXDeviceInfo.firmware_version is 1, Panel7 corresponds to all of Up, Down,
@@ -165,7 +184,9 @@ class SMXStageConfig(object):
             "<"    # Little Endian
             "B"    # masterVersion
             "B"    # configVersion
-            "B"    # flags
+        )
+        + SMXConfigFlags.STRUCT_FMT[1:]  # flags
+        + (
             "H"    # debounceNodelayMilliseconds
             "H"    # debounceDelayMilliseconds
             "H"    # panelDebounceMicroseconds
@@ -202,7 +223,7 @@ class SMXStageConfig(object):
             struct.calcsize(self.STRUCT_FMT),
             self.master_version,
             self.config_version,
-            self.flags,
+            self.flags.to_packed_int(),
             self.debounce_no_delay_milliseconds,
             self.debounce_delay_milliseconds,
             self.panel_debounce_microseconds,
@@ -273,7 +294,7 @@ class SMXStageConfig(object):
         return SMXStageConfig(
             master_version,
             config_version,
-            flags,
+            SMXConfigFlags.from_unpacked_value(flags),
             debounce_no_delay_milliseconds,
             debounce_delay_milliseconds,
             panel_debounce_microseconds,
