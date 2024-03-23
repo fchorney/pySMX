@@ -103,8 +103,7 @@ def make_new_config(player: int, old_config: SMXStageConfig) -> SMXStageConfig:
     config.platform_strip_color = [int(x * brightness) for x in platform_strip_color]
     config.auto_light_panel_mask = auto_light_mask
     if step_color:
-        # Enable flags to use step color
-        config.flags &= ~(1 << 0)
+        config.flags.auto_lighting_use_pressed_animations = False
         config.step_color = step_color
     config.panel_settings = panel_settings
 

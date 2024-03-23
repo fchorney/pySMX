@@ -25,6 +25,8 @@ of functions currently enabled and which ones have yet to be added.
 
 ### Functions Left to Port
 
+- Get Config <v5: Get the stage configuration (version 4 and lower)
+- Write Config <v5: Write the stage configuration (version 4 and lower)
 - Set Lights: Set panel lights (This seems fairly complicated at a quick glance)
 - Upload GIF Data: Upload GIF Data to Panels
 - Re-Enable Auto Lights: Assume this just turns auto GIFs on the pads back on to default?

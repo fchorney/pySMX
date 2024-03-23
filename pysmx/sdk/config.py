@@ -76,8 +76,8 @@ class PackedSensorSettings(object):
 
 @dataclass
 class SMXConfigFlags(object):
-    # If set, the panels will use the pressed animation when pressed, and step_color is ignored.
-    # If unset, panels will be lit solid using step_color.
+    # If True, the panels will use the pressed animation when pressed, and step_color is ignored.
+    # If False, panels will be lit solid using step_color.
     # master_version >= 4. Previous versions always use step_color.
     auto_lighting_use_pressed_animations: bool = True
 
