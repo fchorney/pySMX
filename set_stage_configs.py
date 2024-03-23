@@ -77,8 +77,10 @@ def make_new_config(player: int, old_config: SMXStageConfig) -> SMXStageConfig:
     # combined_high_threshold - Absolutely no idea. Defaults to 65535
     # reserved - This must be left unchanged. Defaults to 0
     # Note: Sensor data must be a list of 13 flat values.
-    # These default settings will set all 4 FSR sensors to 220 release threshold, and 222 press threshold.
-    sensor_data = [33, 42, 220, 220, 220, 220, 222, 222, 222, 222, 65535, 65535, 0]
+    # These default settings will set all 4 FSR sensors to `low` release threshold, and `high` press threshold.
+    low = 228
+    high = 230
+    sensor_data = [33, 42, low, low, low, low, high, high, high, high, 65535, 65535, 0]
 
     # Personally I play with all panels sharing the same settings, so the default values here will be applied to all
     # panels. If you want to modify this, you would need to use `PackedSensorSettings.from_unpacked_values(sensor_data)`
