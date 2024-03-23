@@ -10,6 +10,25 @@ StepManiaX SDK for Python
 Currently fairly incomplete. A lot of core functionality exists, but the rest of the SDK needs to be finished. At some point I can write out a list
 of functions currently enabled and which ones have yet to be added.
 
+
+### Ported Functions
+
+- Get Device Info: Get basic stage information such as Player jumper, serial number, firmware version
+- Get Config v5: Get the stage configuration (version 5 and up)
+- Write Config v5: Write the stage configuration (version 5 and up)
+- Factory Reset: Factory reset the stage to original settings
+- Set Light Strip: Set the color of the underglow light strips (Currently only used in factory\_reset function)
+- Force Recalibration: Force the stage to perform a recalibration
+- Get Sensor Test Data: Get sensor test data for modes [uncalibrated, calibrated, noise, tare]
+- Set Serial Numbers: Sets a stage serial if it doesn't exist yet. Does nothing if one exists
+- Set Panel Test Mode: Turn on/off panel test mode
+
+### Functions Left to Port
+
+- Set Lights: Set panel lights (This seems fairly complicated at a quick glance)
+- Upload GIF Data: Upload GIF Data to Panels
+- Re-Enable Auto Lights: Assume this just turns auto GIFs on the pads back on to default?
+
 ## Installation (macOS)
 
 These are the instructions that I have been using to run this on my system so far.
