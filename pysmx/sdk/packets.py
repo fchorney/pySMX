@@ -206,6 +206,7 @@ def send_packets(
             # If we are expecting an acknowledgement, check if the raw_data is equal to
             # an acknowledgemenet packet
             if acknowledge and raw_data == ACK_PACKET:
+                logger.debug("Successfully Acknowledged")
                 break
 
             # Else we parse the packet until it is finished

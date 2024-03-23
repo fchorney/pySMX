@@ -13,6 +13,7 @@ class PackedSensorSettings(object):
     fsr_low_threshold: list[int]  # 4 values
     fsr_high_threshold: list[int]  # 4 values
 
+    # TODO: Figure out what this is for
     combined_low_threshold: int
     combined_high_threshold: int
 

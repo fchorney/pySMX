@@ -1,4 +1,6 @@
 from dataclasses import dataclass, field
+from random import SystemRandom
+from string import ascii_uppercase, digits
 from time import monotonic_ns
 
 import hid
@@ -16,7 +18,12 @@ from pysmx.sdk.packets import (
     make_send_packets,
     send_packets,
 )
-from pysmx.sdk.sensors import SensorTestMode, SMXDetailData, SMXSensorTestData
+from pysmx.sdk.sensors import (
+    PanelTestMode,
+    SensorTestMode,
+    SMXDetailData,
+    SMXSensorTestData,
+)
 from pysmx.utils import BytesEnum, pad_list, s_to_ns
 
 
@@ -31,6 +38,8 @@ class APICommand(BytesEnum):
     SET_LIGHT_STRIP = b"L"
     FORCE_RECALIBRATION = b"C"
     GET_SENSOR_TEST_DATA = b"y"
+    SET_SERIAL_NUMBERS = b"s"
+    SET_PANEL_TEST_MODE = b"t"
 
 
 # StepManiaX Stage Hardware Identification
@@ -252,6 +261,29 @@ class SMXAPI(object):
         stage.device_info = device_info
 
         return stage.device_info
+
+    def set_serial_numbers(self, player: int) -> None:
+        stage = self._get_stage(player)
+
+        # TODO: Make this a constant? I dunno
+        serial_number_length = 32
+        serial = list(map(ord, [SystemRandom().choice(ascii_uppercase + digits) for _ in range(serial_number_length)]))
+
+        cmd = [ord(APICommand.SET_SERIAL_NUMBERS)] + serial
+        stage.send_command(bytes(cmd), acknowledge=True)
+
+    def set_panel_test_mode(self, player: int, mode: PanelTestMode) -> None:
+        # TODO: WARNING. I don't think this works correctly. You can send the PRESSURE_TEST mode but pressing on the
+        # panels doesn't seem to do anything?
+        stage = self._get_stage(player)
+
+        # TODO: At some point we might need to keep track of what this is currently set to. I don't think we ever
+        # actually send `PanelTestMode.OFF` to the stages?
+        if mode == PanelTestMode.OFF:
+            return
+
+        # TODO: Apparently you need to send the panel test mode command periodically (about once every second)
+        stage.send_command(APICommand.SET_PANEL_TEST_MODE + mode, acknowledge=True)
 
     def _find_stages(self) -> None:
         logger.debug("Finding Stages...")

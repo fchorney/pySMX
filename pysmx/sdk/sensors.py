@@ -29,6 +29,7 @@ class PanelTestMode(BytesEnum):
     PRESSURE_TEST = b"1"
 
 
+# TODO: This might be backwards?
 class Panel(IntEnum):
     DOWN_LEFT = 0
     DOWN = 1
