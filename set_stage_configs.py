@@ -130,18 +130,17 @@ def main():
         # Grab the old config
         logger.info(f"Grabbing old config for p{player}")
         old_config = smxapi.get_stage_config(player)
+        logger.debug(f"Current Config for p{player}:\n{old_config}")
 
         # Create new config from old config
         new_config = make_new_config(player, old_config)
 
-        logger.info(f"Updating p{player}")
-
         logger.debug("Waiting for config write to be enabled...")
         sleep(1.2)
 
-        logger.debug(f"Current Config for Stage {player}:\n{smxapi.stages[player].config}")
+        logger.info(f"Updating p{player}")
         smxapi.write_stage_config(player, new_config)
-        logger.debug(f"New Config for Stage {player}:\n{smxapi.stages[player].config}")
+        logger.debug(f"New Config for p{player}:\n{smxapi.stages[player].config}")
 
     logger.info("Finished")
 
