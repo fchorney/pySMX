@@ -20,7 +20,7 @@ RGB_BLUE = [0, 0, 255]
 ####################################################
 # !!!!!!!!!!!!! MODIFY THIS FUNCTION !!!!!!!!!!!!! #
 ####################################################
-def make_new_config(player: int, old_config: SMXStageConfig) -> SMXStageConfig:
+def make_new_config(player: int, old_config: SMXStageConfig, doubles: bool) -> SMXStageConfig:
     # Players are referenced as 1 and 2, so -1 to get array index.
     player_idx = player - 1
 
@@ -37,11 +37,22 @@ def make_new_config(player: int, old_config: SMXStageConfig) -> SMXStageConfig:
 
     # Which sensors on each panel to enable. This can be used to disable sensors that we know aren't populated.
     # This is packed, with four sensors on two panels per byte:
+    # Sensor order is: Left, Right, Up, Down
     # enabled_sensors[0] & 0xF0 is the 4 sensors on the first panel
     # enabled_sensors[0] & 0x0F is the 4 sensors on the second panel, etc
     # Note: You can modify this, but be sure you know what you are doing.
     # The default is set so all 4 sensors are enabled on Up, Down, Left, Right and the rest of the panels are disabled
-    enabled_sensors = [[15, 15, 15, 15, 0], [15, 15, 15, 15, 0]][player_idx]
+    # enabled_sensors = [[15, 15, 15, 15, 0], [15, 15, 15, 15, 0]][player_idx]
+
+    if not doubles:
+        # Singles
+        # Only enable inside sensors on the 4 cardinal arrows
+        enabled_sensors = [[1, 4, 8, 2, 0], [1, 4, 8, 2, 0]][player_idx]
+    else:
+        # Doubles
+        # Only enable inside sensors on the 4 cardinal arrows, except for p1R and p2L
+        # can have their outside sensors also enabled
+        enabled_sensors = [[1, 4, 12, 2, 0], [1, 12, 8, 2, 0]][player_idx]
 
     # Array of RGB values for the stage underglow. 0-255 for each color.
     # Defaults to RED
@@ -59,7 +70,7 @@ def make_new_config(player: int, old_config: SMXStageConfig) -> SMXStageConfig:
 
     # If you want to set specific colors when each arrow is stepped on, you can modify this block.
     # Panels are defined from top to bottom, left to right.
-    # By default I'm setting disabled panels to `0x00` (doesn't matter anyway), and enabled panels to blue.
+    # By default I'm setting disabled panels to `0x00` (doesn't matter anyway), and enabled panels to white.
     # `step_color` needs to be a flat list of 27 values. (3 [RGB] * 9 [Panel])
     # WARNING: The step colors should be scaled from 0-255, to 0-170 using the `step_color_scale` function
     step_color: list[int] | None = None
@@ -92,6 +103,16 @@ def make_new_config(player: int, old_config: SMXStageConfig) -> SMXStageConfig:
     panel_settings[Panel.UP].fsr_low_threshold[Sensor.DOWN] = 220
     panel_settings[Panel.UP].fsr_high_threshold[Sensor.DOWN] = 225
 
+    if doubles:
+        if player == 1:
+            # Make the right sensor for the p1R arrow slightly more sensitive
+            panel_settings[Panel.RIGHT].fsr_low_threshold[Sensor.RIGHT] = 220
+            panel_settings[Panel.RIGHT].fsr_high_threshold[Sensor.RIGHT] = 225
+        else:
+            # Make the left sensor for the p2L arrow slightly more sensitive
+            panel_settings[Panel.LEFT].fsr_low_threshold[Sensor.LEFT] = 220
+            panel_settings[Panel.LEFT].fsr_high_threshold[Sensor.LEFT] = 225
+
     # Individual Panel Settings Example.
     # You can play around with this if you want more granularity
     # panel_settings = [
@@ -114,6 +135,10 @@ def make_new_config(player: int, old_config: SMXStageConfig) -> SMXStageConfig:
         config.step_color = step_color
     config.panel_settings = panel_settings
 
+    # Modify PanelDebounceMicroseconds from 4000 to 3000
+    # Remember to modify ITGMania to set debouncing to 30ms
+    config.panel_debounce_microseconds = 3000
+
     return config
 
 
@@ -124,7 +149,7 @@ def step_color_scale(rgb_color: list[int]) -> list[int]:
     return [c * 170 // 255 for c in rgb_color]
 
 
-def main():
+def main(doubles: bool):
     # Create an instance of the API
     smxapi = SMXAPI()
 
@@ -140,7 +165,7 @@ def main():
         logger.debug(f"Current Config for Stage {player}:\n{smxapi.stages[player].config}")
 
         # Create new config from old config
-        new_config = make_new_config(player, old_config)
+        new_config = make_new_config(player, old_config, doubles)
 
         logger.info(f"Updating p{player}")
 
@@ -154,4 +179,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(doubles=False)
