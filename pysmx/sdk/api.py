@@ -200,6 +200,8 @@ class SMXAPI(object):
                 # a 8-bit byte
                 out_bytes.append(result >> panel)
 
+            print(f"Panel {panel}: {out_bytes}")
+
             panel_data.append(SMXDetailData.from_packed_bytes(bytes(out_bytes)))
 
         return SMXSensorTestData.from_detail_data(panel_data)

@@ -29,25 +29,23 @@ class PanelTestMode(BytesEnum):
     PRESSURE_TEST = b"1"
 
 
-# TODO: This might be backwards?
 class Panel(IntEnum):
-    DOWN_LEFT = 0
-    DOWN = 1
-    DOWN_RIGHT = 2
+    UP_LEFT = 0
+    UP = 1
+    UP_RIGHT = 2
     LEFT = 3
     CENTER = 4
     RIGHT = 5
-    UP_LEFT = 6
-    UP = 7
-    UP_RIGHT = 8
+    DOWN_LEFT = 6
+    DOWN = 7
+    DOWN_RIGHT = 8
 
 
-# TODO: This might be different
 class Sensor(IntEnum):
-    UP = 0
+    LEFT = 0
     RIGHT = 1
-    DOWN = 2
-    LEFT = 3
+    UP = 2
+    DOWN = 3
 
 
 @dataclass
@@ -97,6 +95,8 @@ class SMXDetailData(object):
         # The last nibble is 4 bools for bad sensor dip
         for i in range(4, 8):
             new_data.append(1 if data[9] & (1 << i) else 0)
+
+        print(f"New Data: {new_data}")
 
         unpacked = list(struct.unpack(cls.STRUCT_FMT, bytes(new_data)))
 

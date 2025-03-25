@@ -32,8 +32,9 @@ class SMXDeviceInfo(object):
 
     @classmethod
     def from_bytes(cls, data: bytes) -> "SMXDeviceInfo":
+        print(f"DATA: {data}")
         unpacked = struct.unpack(cls.STRUCT_FMT, data)
-
+        print(f"UNPACKED: {unpacked}")
         # Player is the 2nd byte. We add 1 to it so we have 1 and 2 instead of 0 and 1
         player = int(unpacked[2]) + 1
 

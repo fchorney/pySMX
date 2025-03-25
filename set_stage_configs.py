@@ -4,6 +4,7 @@ from loguru import logger
 
 from pysmx.sdk.api import SMXAPI
 from pysmx.sdk.config import PackedSensorSettings, SMXStageConfig
+from pysmx.sdk.sensors import Panel, Sensor
 
 
 # WARNING: I have ONLY tested this on my own pads. Gen 5 FSR style SMX pads.
@@ -54,7 +55,7 @@ def make_new_config(player: int, old_config: SMXStageConfig) -> SMXStageConfig:
 
     # If use_step_color is true we will use the following `step_color` to set the color the panels light up when
     # stepped on.
-    use_step_color = [True, True][player_idx]
+    use_step_color = [False, False][player_idx]
 
     # If you want to set specific colors when each arrow is stepped on, you can modify this block.
     # Panels are defined from top to bottom, left to right.
@@ -78,7 +79,7 @@ def make_new_config(player: int, old_config: SMXStageConfig) -> SMXStageConfig:
     # reserved - This must be left unchanged. Defaults to 0
     # Note: Sensor data must be a list of 13 flat values.
     # These default settings will set all 4 FSR sensors to `low` release threshold, and `high` press threshold.
-    low = 228
+    low = 225
     high = 230
     sensor_data = [33, 42, low, low, low, low, high, high, high, high, 65535, 65535, 0]
 
@@ -86,6 +87,10 @@ def make_new_config(player: int, old_config: SMXStageConfig) -> SMXStageConfig:
     # panels. If you want to modify this, you would need to use `PackedSensorSettings.from_unpacked_values(sensor_data)`
     # for all 9 panels.
     panel_settings = [PackedSensorSettings.from_unpacked_values(sensor_data) for _ in range(0, 9)]
+
+    # Make the down sensor for the up arrow slightly more sensitive
+    panel_settings[Panel.UP].fsr_low_threshold[Sensor.DOWN] = 220
+    panel_settings[Panel.UP].fsr_high_threshold[Sensor.DOWN] = 225
 
     # Individual Panel Settings Example.
     # You can play around with this if you want more granularity
@@ -132,6 +137,7 @@ def main():
         # Grab the old config
         logger.info(f"Grabbing old config for p{player}")
         old_config = smxapi.get_stage_config(player)
+        logger.debug(f"Current Config for Stage {player}:\n{smxapi.stages[player].config}")
 
         # Create new config from old config
         new_config = make_new_config(player, old_config)
@@ -141,7 +147,6 @@ def main():
         logger.debug("Waiting for config write to be enabled...")
         sleep(1.2)
 
-        logger.debug(f"Current Config for Stage {player}:\n{smxapi.stages[player].config}")
         smxapi.write_stage_config(player, new_config)
         logger.debug(f"New Config for Stage {player}:\n{smxapi.stages[player].config}")
 
