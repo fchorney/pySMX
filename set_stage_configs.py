@@ -50,7 +50,7 @@ def make_new_config(
     if not doubles:
         # Singles
         # Only enable inside sensors on the 4 cardinal arrows
-        enabled_sensors = [[8, 2, 1, 4, 0], [8, 2, 1, 4, 0]][player_idx]
+        enabled_sensors = [[8, 2, 1, 4, 0], [11, 14, 13, 7, 0]][player_idx]
     else:
         # Doubles
         # Only enable inside sensors on the 4 cardinal arrows, except for p1R and p2L
@@ -93,8 +93,8 @@ def make_new_config(
     # reserved - This must be left unchanged. Defaults to 0
     # Note: Sensor data must be a list of 13 flat values.
     # These default settings will set all 4 FSR sensors to `low` release threshold, and `high` press threshold.
-    low = 225
-    high = 230
+    low = [225, 188][player_idx]
+    high = [230, 190][player_idx]
     sensor_data = [33, 42, low, low, low, low, high, high, high, high, 65535, 65535, 0]
 
     # Personally I play with all panels sharing the same settings, so the default values here will be applied to all
@@ -103,8 +103,8 @@ def make_new_config(
     panel_settings = [PackedSensorSettings.from_unpacked_values(sensor_data) for _ in range(0, 9)]
 
     # Make the down sensor for the up arrow slightly more sensitive
-    panel_settings[Panel.UP].fsr_low_threshold[Sensor.DOWN] = 220
-    panel_settings[Panel.UP].fsr_high_threshold[Sensor.DOWN] = 225
+    panel_settings[Panel.UP].fsr_low_threshold[Sensor.DOWN] = [220, 173][player_idx]
+    panel_settings[Panel.UP].fsr_high_threshold[Sensor.DOWN] = [225, 175][player_idx]
 
     if doubles:
         if player == 1:
