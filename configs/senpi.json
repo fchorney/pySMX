@@ -1,0 +1,15 @@
+{
+    "p1": {
+        "enabled_sensors": [8, 2, 1, 4, 0],
+        "low": 228,
+        "high": 230,
+        "panels": {
+            "up": {
+                "down": {
+                    "low": 218,
+                    "high": 220
+                }
+            }
+        }
+    }
+}

@@ -2,11 +2,9 @@ import argparse
 from time import sleep
 
 from loguru import logger
-
 from pysmx.sdk.api import SMXAPI
 from pysmx.sdk.config import PackedSensorSettings, SMXStageConfig
 from pysmx.sdk.sensors import Panel, Sensor
-
 
 # WARNING: I have ONLY tested this on my own pads. Gen 5 FSR style SMX pads.
 # Use this script and SDK at your own risk.
@@ -50,16 +48,18 @@ def make_new_config(
     if not doubles:
         # Singles
         # Only enable inside sensors on the 4 cardinal arrows
-        enabled_sensors = [[8, 2, 1, 4, 0], [11, 14, 13, 7, 0]][player_idx]
+        enabled_sensors = [8, 2, 1, 4, 0]
     else:
         # Doubles
         # Only enable inside sensors on the 4 cardinal arrows, except for p1R and p2L
         # can have their outside sensors also enabled
-        enabled_sensors = [[8, 2, 3, 4, 0], [8, 3, 1, 4, 0]][player_idx]
+        enabled_sensors = [[11, 14, 15, 7, 0], [11, 15, 13, 7, 0]][player_idx]
 
     # Array of RGB values for the stage underglow. 0-255 for each color.
     # Defaults to RED
-    platform_strip_color = [int(x * brightness) for x in [[0, 128, 255], [0, 128, 255]][player_idx]]
+    platform_strip_color = [
+        int(x * brightness) for x in [[0, 128, 255], [0, 128, 255]][player_idx]
+    ]
 
     # Determines which panels to enable auto-lighting for. Disabled panels will be unlit.
     # 0x01 =  panel 0, 0x02 = panel 1, etc
@@ -81,7 +81,11 @@ def make_new_config(
         x = [0, 0, 0]
         s = [int(c * brightness) for c in step_color_scale([255, 255, 255])]
         step_color = []
-        step_color.extend(*[[x + s + x + s + x + s + x + s + x], [x + s + x + s + x + s + x + s + x]][player_idx])
+        step_color.extend(
+            *[[x + s + x + s + x + s + x + s + x], [x + s + x + s + x + s + x + s + x]][
+                player_idx
+            ]
+        )
 
     # Default Sensor Data
     # load_cell_low_threshold - Presumably load cell release threshold (Don't have a load cell pad myself)
@@ -93,28 +97,32 @@ def make_new_config(
     # reserved - This must be left unchanged. Defaults to 0
     # Note: Sensor data must be a list of 13 flat values.
     # These default settings will set all 4 FSR sensors to `low` release threshold, and `high` press threshold.
-    low = [225, 188][player_idx]
-    high = [230, 190][player_idx]
+    # low = 225
+    # high = 230
+    low = 228
+    high = 230
     sensor_data = [33, 42, low, low, low, low, high, high, high, high, 65535, 65535, 0]
 
     # Personally I play with all panels sharing the same settings, so the default values here will be applied to all
     # panels. If you want to modify this, you would need to use `PackedSensorSettings.from_unpacked_values(sensor_data)`
     # for all 9 panels.
-    panel_settings = [PackedSensorSettings.from_unpacked_values(sensor_data) for _ in range(0, 9)]
+    panel_settings = [
+        PackedSensorSettings.from_unpacked_values(sensor_data) for _ in range(0, 9)
+    ]
 
     # Make the down sensor for the up arrow slightly more sensitive
-    panel_settings[Panel.UP].fsr_low_threshold[Sensor.DOWN] = [220, 173][player_idx]
-    panel_settings[Panel.UP].fsr_high_threshold[Sensor.DOWN] = [225, 175][player_idx]
+    panel_settings[Panel.UP].fsr_low_threshold[Sensor.DOWN] = 218
+    panel_settings[Panel.UP].fsr_high_threshold[Sensor.DOWN] = 220
 
     if doubles:
         if player == 1:
             # Make the right sensor for the p1R arrow slightly more sensitive
-            panel_settings[Panel.RIGHT].fsr_low_threshold[Sensor.RIGHT] = 220
-            panel_settings[Panel.RIGHT].fsr_high_threshold[Sensor.RIGHT] = 225
+            panel_settings[Panel.RIGHT].fsr_low_threshold[Sensor.RIGHT] = 218
+            panel_settings[Panel.RIGHT].fsr_high_threshold[Sensor.RIGHT] = 220
         else:
             # Make the left sensor for the p2L arrow slightly more sensitive
-            panel_settings[Panel.LEFT].fsr_low_threshold[Sensor.LEFT] = 220
-            panel_settings[Panel.LEFT].fsr_high_threshold[Sensor.LEFT] = 225
+            panel_settings[Panel.LEFT].fsr_low_threshold[Sensor.LEFT] = 218
+            panel_settings[Panel.LEFT].fsr_high_threshold[Sensor.LEFT] = 220
 
     # Individual Panel Settings Example.
     # You can play around with this if you want more granularity
@@ -138,8 +146,8 @@ def make_new_config(
         config.step_color = step_color
     config.panel_settings = panel_settings
 
-    # Modify PanelDebounceMicroseconds from 4000 to 3000
-    # Remember to modify ITGMania to set debouncing to 30ms
+    # Modify PanelDebounceMicroseconds from 4000 entered value
+    # Remember to modify ITGMania to turn off software debounce
     config.panel_debounce_microseconds = debounce
 
     return config
@@ -167,7 +175,9 @@ def main():
         # Grab the old config
         logger.info(f"Grabbing old config for p{player}")
         old_config = smxapi.get_stage_config(player)
-        logger.debug(f"Current Config for Stage {player}:\n{smxapi.stages[player].config}")
+        logger.debug(
+            f"Current Config for Stage {player}:\n{smxapi.stages[player].config}"
+        )
 
         # Create new config from old config
         new_config = make_new_config(player, old_config, pargs.double, pargs.debounce)
