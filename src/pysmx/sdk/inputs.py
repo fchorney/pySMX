@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 
 @dataclass
-class SMXStageInputs(object):
+class SMXStageInputs:
     down_left: bool
     down: bool
     down_right: bool

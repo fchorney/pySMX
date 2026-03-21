@@ -51,7 +51,7 @@ class Sensor(IntEnum):
 
 
 @dataclass
-class SMXDetailData(object):
+class SMXDetailData:
     sig1: bool
     sig2: bool
     sig3: bool
@@ -78,7 +78,7 @@ class SMXDetailData(object):
     # fmt: on
 
     @classmethod
-    def from_packed_bytes(cls, data: bytes) -> "SMXDetailData":
+    def from_packed_bytes(cls, data: bytes) -> SMXDetailData:
         new_data: list[int] = []
 
         # First 8 bits are all bools
@@ -138,7 +138,7 @@ class SMXDetailData(object):
 
 
 @dataclass
-class SMXSensorTestData(object):
+class SMXSensorTestData:
     """
     Data for the current `SensorTestMode`. The interpretation of the sensor_level
     depends on the mode.
@@ -162,7 +162,7 @@ class SMXSensorTestData(object):
     bad_jumper: list[list[int]] = field(default_factory=lambda: [[] for _ in range(9)])  # 9 Panels, 4 Sensors
 
     @classmethod
-    def from_detail_data(cls, data: list[SMXDetailData]) -> "SMXSensorTestData":
+    def from_detail_data(cls, data: list[SMXDetailData]) -> SMXSensorTestData:
         have_data_from_panel: list[bool] = []
         sensor_level: list[list[int]] = []
         bad_sensor_input: list[list[int]] = []

@@ -49,7 +49,7 @@ SMX_USB_PRODUCT_NAME = "StepManiaX"
 
 
 @dataclass
-class SMXStage(object):
+class SMXStage:
     hid: SMXHID
     device_info: SMXDeviceInfo
     _config: SMXStageConfig | None = None
@@ -117,14 +117,14 @@ class SMXStage(object):
         acknowledge=False,
         report_id: int = HID_REPORT_COMMAND,
     ) -> bytes:
-        debug_str = (f"Sending Command [acknowledge: {acknowledge}]: ").encode("UTF-8")
+        debug_str = (f"Sending Command [acknowledge: {acknowledge}]: ").encode()
         logger.debug(debug_str + cmd)
         packets = make_send_packets(cmd)
         return send_packets(self.hid, packets, acknowledge, report_id)
 
 
 @dataclass
-class GTimers(object):
+class GTimers:
     # TODO: If you write a script to write the config, you'd need to wait 1 second before you can because of this
     wc_seconds: int = s_to_ns(1)
     wc_time: int = monotonic_ns()
@@ -134,7 +134,7 @@ TIMERS = GTimers()
 
 
 @dataclass
-class SMXAPI(object):
+class SMXAPI:
     stages: dict[int, SMXStage] = field(default_factory=dict)
 
     def write_stage_config(self, player: int, config: SMXStageConfig | None = None) -> SMXStageConfig:
@@ -147,9 +147,8 @@ class SMXAPI(object):
         if (time := monotonic_ns()) - TIMERS.wc_time >= TIMERS.wc_seconds:
             TIMERS.wc_time = time
         else:
-            logger.error(
-                f"Can not write config. Please wait {(TIMERS.wc_seconds - (time - TIMERS.wc_time))/1000000000} seconds"
-            )
+            ns_to_s = (TIMERS.wc_seconds - (time - TIMERS.wc_time)) / 1000000000
+            logger.error(f"Can not write config. Please wait {ns_to_s} seconds")
             raise SMXRateLimitError()
 
         stage._api_write_stage_config(config)
@@ -269,7 +268,7 @@ class SMXAPI(object):
         serial_number_length = 32
         serial = list(map(ord, [SystemRandom().choice(ascii_uppercase + digits) for _ in range(serial_number_length)]))
 
-        cmd = [ord(APICommand.SET_SERIAL_NUMBERS)] + serial
+        cmd = [ord(APICommand.SET_SERIAL_NUMBERS), *serial]
         stage.send_command(bytes(cmd), acknowledge=True)
 
     def set_panel_test_mode(self, player: int, mode: PanelTestMode) -> None:

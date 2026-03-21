@@ -8,7 +8,6 @@ from loguru import logger
 from src.pysmx.exceptions import SMXPacketTimeoutError, SMXStageHIDError
 from src.pysmx.utils import pad_list, s_to_ns
 
-
 # USB Communication Packet Flags
 PACKET_FLAG_START_OF_COMMAND = 0x04
 PACKET_FLAG_END_OF_COMMAND = 0x01
@@ -26,7 +25,7 @@ ACK_PACKET = pad_list([6, 7], 64)
 
 
 @dataclass
-class SMXHID(object):
+class SMXHID:
     vendor_id: int
     product_id: int
     serial_number: str
@@ -152,7 +151,7 @@ def handle_packet(packet: list[int], current_packet: list[int], report_id: int) 
             # isn't, we got a command that didn't end with an END_OF_COMMAND packet and
             # something is wrong. This shouldn't happen, so warn about it and recover by
             # clearing the junk in the buffer.
-            print(f"Got PACKET_FLAG_START_OF_COMMAND, but we had {len(current_packet)} " "bytes in the read buffer")
+            print(f"Got PACKET_FLAG_START_OF_COMMAND, but we had {len(current_packet)} bytes in the read buffer")
             current_packet.clear()
 
         current_packet.extend(data)

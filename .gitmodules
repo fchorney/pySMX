@@ -1,0 +1,3 @@
+[submodule "smx-sdk"]
+	path = smx-sdk
+	url = git@github.com:steprevolution/stepmaniax-sdk.git

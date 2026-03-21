@@ -1,15 +1,15 @@
 import argparse
-from typing import Optional, Sequence
+from collections.abc import Sequence
 
 from loguru import logger
 
 
-def main(args: Optional[Sequence[str]] = None):
+def main(args: Sequence[str] | None = None):
     pargs = parse_args(args=args)
     logger.info(f"Parsed Args: {pargs}")
 
 
-def parse_args(args: Optional[Sequence[str]] = None) -> argparse.Namespace:
+def parse_args(args: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="StepManiaX SDK for Python")
 
     return parser.parse_args(args)

@@ -5,7 +5,6 @@ from loguru import logger
 from src.pysmx import SMXAPI
 from src.pysmx.sdk.config import PackedSensorSettings, SMXStageConfig
 
-
 # WARNING: I have ONLY tested this on my own pads. Gen 5 FSR style SMX pads.
 # Use this script and SDK at your own risk.
 
