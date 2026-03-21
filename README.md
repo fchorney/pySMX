@@ -1,14 +1,11 @@
 # pySMX
-[![Build Status](https://github.com/fchorney/pysmx/workflows/build/badge.svg)](https://github.com/fchorney/pysmx/actions?query=workflow:build)
-[![Python Version](https://img.shields.io/badge/python-3.10-blue.svg)](https://www.python.org/)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 
 StepManiaX SDK for Python
 
 ## Status
 
-Currently fairly incomplete. A lot of core functionality exists, but the rest of the SDK needs to be finished. At some point I can write out a list
-of functions currently enabled and which ones have yet to be added.
+Currently, fairly incomplete. A lot of core functionality exists, but the rest of the SDK needs to be finished.
+At some point I can write out a list of functions currently enabled and which ones have yet to be added.
 
 
 ### Ported Functions
@@ -35,7 +32,7 @@ of functions currently enabled and which ones have yet to be added.
 
 These are the instructions that I have been using to run this on my system so far.
 
-1. Use pyenv to install Python 3.10.x or use System Python if its 3.10.x or greater (This will probably work on newer pythons, but I don't know personally).
+1. Use pyenv to install Python 3.14.x or use System Python if its 3.14.x or greater.
 2. Use [Homebrew](https://brew.sh/) to install `libusb`
 
 ```
@@ -71,7 +68,7 @@ print(smxapi_get_stage_config(2))
 
 8. Run your script with `python script_name.py`. This assumes you have the `venv` still activated.
 
-## Using pySMX to set your stage settings without needing to connect to a windows computer
+## Using pySMX to set your stage settings without needing to connect to a Windows computer
 
 As this API/SDK is still unfinished, you can use the included script to set your stages sensor values to whatever you want.
 
@@ -93,7 +90,7 @@ You need to have `libUSB` installed to run this. I have personally installed it 
 
 ## Attribution
 
-This SDK is hevily based on the official open source StepManiaX-SDK: https://github.com/steprevolution/stepmaniax-sdk
+This SDK is heavily based on the official open source StepManiaX-SDK: https://github.com/steprevolution/stepmaniax-sdk
 
 ## License
 

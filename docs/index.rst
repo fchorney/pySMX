@@ -1,14 +1,6 @@
 pySMX
 =====
-
-StepManiaX SDK for Python
-
-.. toctree::
-   :maxdepth: 1
-   :caption: General
-   :name: sec-general
-
-   general/index
+Version: |version|
 
 .. toctree::
    :maxdepth: 1
@@ -16,3 +8,10 @@ StepManiaX SDK for Python
    :name: sec-code-ref
 
    autoapi/pysmx/index
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`

@@ -1,33 +1,19 @@
+import tomllib
 from datetime import datetime
 
-from recommonmark.parser import CommonMarkParser
-from recommonmark.transform import AutoStructify
-
-from pysmx import __version__
-
-
-# This exists to fix a bug in recommonmark due to a missing function definition
-# https://github.com/readthedocs/recommonmark/issues/177
-class CustomCommonMarkParser(CommonMarkParser):
-    def visit_document(self, node):
-        pass
-
+from sphinx.application import Sphinx
 
 # Sphinx Base --------------------------------------------------------------------------
 # Extensions
 extensions = [
     # http://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html
     "sphinx.ext.autodoc",
-    # http://www.sphinx-doc.org/en/master/usage/extensions/napoleon.html
-    "sphinx.ext.napoleon",
-    # http://www.sphinx-doc.org/en/master/usage/extensions/todo.html
-    "sphinx.ext.todo",
     # http://www.sphinx-doc.org/en/master/usage/extensions/viewcode.html
     "sphinx.ext.viewcode",
     # https://sphinx-autoapi.readthedocs.io/en/latest/
     "autoapi.extension",
-    # https://github.com/invenia/sphinxcontrib-runcmd
-    "sphinxcontrib.runcmd",
+    # https://github.com/agronholm/sphinx-autodoc-typehints
+    "sphinx_autodoc_typehints",
 ]
 
 # Set initial page name
@@ -37,10 +23,14 @@ master_doc = "index"
 project = "pySMX"
 year = datetime.now().year
 author = "Fernando Chorney"
-copyright = f"{year}, {author}"
+project_copyright = f"{year}, {author}"
+
+# Read in pyproject.toml to grab version
+with open("../pyproject.toml", "rb") as f:
+    project_data = tomllib.load(f)
 
 # Short version name
-version = __version__
+version = project_data["project"]["version"]
 
 # Long version name
 release = version
@@ -61,19 +51,9 @@ autodoc_member_order = "bysource"
 # Always show members, and member-inheritance by default
 autodoc_default_options = {"members": True, "show-inheritance": True}
 
-# Sphinx Extension Napoleon ------------------------------------------------------------
-
-# We want to force google style docstrings, so disable numpy style
-napoleon_numpy_docstring = False
-
-# Set output style
-napoleon_use_ivar = True
-napoleon_use_rtype = False
-napoleon_use_param = False
-
 # Sphinx Extension AutoAPI -------------------------------------------------------------
 autoapi_type = "python"
-autoapi_dirs = ["../pysmx/"]
+autoapi_dirs = ["../src/pysmx/"]
 autoapi_template_dir = "./autoapi_templates"
 autoapi_root = "autoapi"
 autoapi_add_toctree_entry = False
@@ -84,16 +64,8 @@ exclude_patterns = ["autoapi_templates"]
 
 
 # Add any Sphinx plugin settings here that don't have global variables exposed.
-def setup(app):
+def setup(app: Sphinx) -> None:
     # App Settings ---------------------------------------------------------------------
     # Set source filetype(s)
-    # Allow .rst files along with .md
+    # Allow .rst files
     app.add_source_suffix(".rst", "restructuredtext")
-    app.add_source_suffix(".md", "markdown")
-    app.add_source_parser(CustomCommonMarkParser)
-
-    # RecommonMark Settings ------------------------------------------------------------
-    # Enable the evaluation of rst directive in .md files
-    # https://recommonmark.readthedocs.io/en/latest/auto_structify.html
-    app.add_config_value("recommonmark_config", {"enable_eval_rst": True}, True)
-    app.add_transform(AutoStructify)

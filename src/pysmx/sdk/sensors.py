@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from enum import IntEnum
 from typing import ClassVar
 
-from pysmx.utils import BytesEnum
+from src.pysmx.utils import BytesEnum
 
 
 class SensorTestMode(BytesEnum):

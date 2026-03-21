@@ -2,8 +2,8 @@ from time import sleep
 
 from loguru import logger
 
-from pysmx.sdk.api import SMXAPI
-from pysmx.sdk.config import PackedSensorSettings, SMXStageConfig
+from src.pysmx import SMXAPI
+from src.pysmx.sdk.config import PackedSensorSettings, SMXStageConfig
 
 
 # WARNING: I have ONLY tested this on my own pads. Gen 5 FSR style SMX pads.
