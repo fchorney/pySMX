@@ -1,9 +1,62 @@
-[build-system]
-requires = ["setuptools", "wheel", "Cython"]
+[project]
+name = "pySMX"
+version = "0.1.0"
+description = "StepManiaX SDK for Python"
+readme = "README.md"
+authors = [{name = "Fernando Chorney", email = "github@djsbx.com"}]
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+classifiers = [
+	"Development Status :: 3 - Alpha",
+	"License :: OSI Approved :: MIT License",
+	"Environment :: Console",
+	"Natural Language :: English",
+	"Operating System :: OS Independent",
+	"Intended Audience :: Developers",
+	"Topic :: Utilities",
+	"Programming Language :: Python :: 3.14",
+]
+keywords = ["stepmaniax", "sdk", "stage", "input", "hid"]
+requires-python = ">=3.14,<4.0"
+dependencies = [
+    "hidapi>=0.15.0",
+    "loguru>=0.7.3",
+    "pystructtype>=0.5.0",
+]
 
-[tool.black]
-target-version = ["py310"]
-line-length=120
+[project.urls]
+Homepage = "https://github.com/fchorney/pysmx"
+Documentation = "https://pysmx.readthedocs.io/en/latest/"
+Repository = "https://github.com/fchorney/pysmx"
+Issues = "https://github.com/fchorney/pysmx/issues"
+
+[dependency-groups]
+dev = [
+    "coverage[toml]>=7.13.5",
+    "mypy>=1.19.1",
+    "pre-commit>=4.5.1",
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+    "ruff>=0.15.7",
+    "sphinx>=9.1.0",
+    "sphinx-autoapi>=3.8.0",
+	"sphinx-autodoc-typehints>=3.9.8",
+    "sphinx-rtd-theme>=3.1.0",
+    "tox>=4.50.3",
+    "tox-uv>=1.33.4",
+]
+
+[project.scripts]
+smxcli = "pysmx.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.mypy]
+strict = false
+check_untyped_defs = true
+exclude = ["venv", ".venv"]
 
 [tool.coverage.run]
 relative_files = true
@@ -14,11 +67,43 @@ show_missing = true
 skip_covered = true
 exclude_lines = ["if __name__ == .__main__.:", "def __str__", "def __repr__", "pragma: no cover"]
 
-[tool.isort]
-profile = "black"
-color_output = true
-combine_as_imports = true
-lines_after_imports = "2"
+[tool.uv]
+package = true
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
+[tool.ruff]
+target-version = "py314"
+line-length = 120
+indent-width = 4
+exclude = []
+
+[tool.ruff.lint]
+select = [
+	"E",        # pycodestyle errors
+	"W",        # pycodestyle warnings
+	"F",        # pyflakes
+	"I",        # isort
+	"N",        # pep8-naming
+	"B",        # flake8-bugbear
+	"C4",       # flake8-comprehensions
+	"UP",       # pyupgrade
+	"ARG001",   # unused arguments in functions
+	"RUF",      # ruff specific rules
+]
+ignore = [
+	"B008",  # do not perform function calls in argument defaults
+	"W191",  # indentation contains tabs
+]
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = true
+docstring-code-line-length = "dynamic"
+
+[tool.ruff.lint.pyupgrade]
+# Preserve types, even if a file imports `from __future__ import annotations`.
+keep-runtime-typing = true

@@ -6,11 +6,11 @@ from time import monotonic_ns
 import hid
 from loguru import logger
 
-from pysmx.exceptions import SMXRateLimitError, SMXStageNotFoundError
-from pysmx.sdk.config import SMXStageConfig
-from pysmx.sdk.device_info import SMXDeviceInfo
-from pysmx.sdk.inputs import SMXStageInputs
-from pysmx.sdk.packets import (
+from src.pysmx.exceptions import SMXRateLimitError, SMXStageNotFoundError
+from src.pysmx.sdk.config import SMXStageConfig
+from src.pysmx.sdk.device_info import SMXDeviceInfo
+from src.pysmx.sdk.inputs import SMXStageInputs
+from src.pysmx.sdk.packets import (
     HID_REPORT_COMMAND,
     HID_REPORT_INPUT,
     PACKET_FLAG_DEVICE_INFO,
@@ -18,13 +18,13 @@ from pysmx.sdk.packets import (
     make_send_packets,
     send_packets,
 )
-from pysmx.sdk.sensors import (
+from src.pysmx.sdk.sensors import (
     PanelTestMode,
     SensorTestMode,
     SMXDetailData,
     SMXSensorTestData,
 )
-from pysmx.utils import BytesEnum, pad_list, s_to_ns
+from src.pysmx.utils import BytesEnum, pad_list, s_to_ns
 
 
 # StepManiaX API Commands

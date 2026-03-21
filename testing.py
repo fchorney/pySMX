@@ -1,5 +1,5 @@
-from pysmx.sdk.api import SMXAPI
-from pysmx.sdk.sensors import PanelTestMode
+from src.pysmx import SMXAPI
+from src.pysmx.sdk.sensors import PanelTestMode
 
 
 x = SMXAPI()

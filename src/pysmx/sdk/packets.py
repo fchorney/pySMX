@@ -5,8 +5,8 @@ from time import monotonic_ns
 import hid
 from loguru import logger
 
-from pysmx.exceptions import SMXPacketTimeoutError, SMXStageHIDError
-from pysmx.utils import pad_list, s_to_ns
+from src.pysmx.exceptions import SMXPacketTimeoutError, SMXStageHIDError
+from src.pysmx.utils import pad_list, s_to_ns
 
 
 # USB Communication Packet Flags
