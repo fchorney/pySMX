@@ -4,7 +4,7 @@ from typing import ClassVar
 
 
 @dataclass
-class PackedSensorSettings(object):
+class PackedSensorSettings:
     # Load Cell Thresholds
     load_cell_low_threshold: int
     load_cell_high_threshold: int
@@ -46,7 +46,7 @@ class PackedSensorSettings(object):
         ]
 
     @classmethod
-    def from_unpacked_values(cls, data: list[int]) -> "PackedSensorSettings":
+    def from_unpacked_values(cls, data: list[int]) -> PackedSensorSettings:
         """
         This constructor assumes that we have already unpacked the struct data.
         A packed struct would be 16 bytes, but unpacked we only have 13 values which is
@@ -75,7 +75,7 @@ class PackedSensorSettings(object):
 
 
 @dataclass
-class SMXConfigFlags(object):
+class SMXConfigFlags:
     # If True, the panels will use the pressed animation when pressed, and step_color is ignored.
     # If False, panels will be lit solid using step_color.
     # master_version >= 4. Previous versions always use step_color.
@@ -87,7 +87,7 @@ class SMXConfigFlags(object):
     STRUCT_FMT: ClassVar[str] = "<B"  # 1 Byte
 
     @classmethod
-    def from_unpacked_value(cls, data: int) -> "SMXConfigFlags":
+    def from_unpacked_value(cls, data: int) -> SMXConfigFlags:
         return SMXConfigFlags(bool(data & (1 << 0)), bool(data & (1 << 1)))
 
     def to_packed_int(self) -> int:
@@ -95,7 +95,7 @@ class SMXConfigFlags(object):
 
 
 @dataclass
-class SMXStageConfig(object):
+class SMXStageConfig:
     # The firmware version of the master controller. Where supported (version 2 and up),
     # this will always read back the firmware version. This will defalt to 0xFF on
     # version 1, and we'll always write 0xFF here so it doesn't change on that firmware
@@ -122,7 +122,7 @@ class SMXStageConfig(object):
     # Packed flags (master_version >= 4)
     flags: SMXConfigFlags = SMXConfigFlags(True, True)
 
-    # Panel thresholds are labelled by their numpad position. Eg: Panel8 is up.
+    # Panel thresholds are labeled by their numpad position. Eg: Panel8 is up.
     # If SMXDeviceInfo.firmware_version is 1, Panel7 corresponds to all of Up, Down,
     # Left, and Right, and Panel2 corresponds to UpLeft, UpRight, DownLeft, and
     # DownRight. For later firmware versions, each panel is configured independently.
@@ -245,7 +245,7 @@ class SMXStageConfig(object):
         )
 
     @classmethod
-    def from_packed_bytes(cls, data: bytes) -> "SMXStageConfig":
+    def from_packed_bytes(cls, data: bytes) -> SMXStageConfig:
         unpacked = list(struct.unpack(cls.STRUCT_FMT, data))
 
         # A PackedSensorSettings object contains 13 values, and we need to read in 9

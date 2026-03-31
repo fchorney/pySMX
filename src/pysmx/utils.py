@@ -1,5 +1,6 @@
+from collections.abc import Generator
 from enum import Enum as ReprEnum
-from typing import Any, Generator
+from typing import Any
 
 
 def pad_list(_list: list[int], count: int, /, padding_byte: bytes = b"\0") -> list[int]:
@@ -19,12 +20,12 @@ def s_to_ns(seconds: float | int) -> int:
     return int(seconds * 1000000000)
 
 
-def chunk_list(_list: list[Any], count: int) -> Generator[Any, None, None]:
+def chunk_list(_list: list[Any], count: int) -> Generator[Any]:
     for i in range(0, len(_list), count):
         yield _list[i : i + count]
 
 
-def chunk_bytes(_bytes: bytes, count: int) -> Generator[bytes, None, None]:
+def chunk_bytes(_bytes: bytes, count: int) -> Generator[bytes]:
     for i in range(0, len(_bytes), count):
         yield _bytes[i : i + count]
 

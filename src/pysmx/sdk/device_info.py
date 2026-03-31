@@ -4,7 +4,7 @@ from typing import ClassVar
 
 
 @dataclass
-class SMXDeviceInfo(object):
+class SMXDeviceInfo:
     """
     SMXDeviceInfo contains device information for the requested stage.
 
@@ -31,7 +31,7 @@ class SMXDeviceInfo(object):
     # fmt: on
 
     @classmethod
-    def from_bytes(cls, data: bytes) -> "SMXDeviceInfo":
+    def from_bytes(cls, data: bytes) -> SMXDeviceInfo:
         unpacked = struct.unpack(cls.STRUCT_FMT, data)
 
         # Player is the 2nd byte. We add 1 to it so we have 1 and 2 instead of 0 and 1
